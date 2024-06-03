@@ -1,5 +1,8 @@
 import os
 import sys
+
+import execution_context
+
 sys.path.append(
     os.path.dirname(os.path.abspath(__file__))
 )
@@ -77,7 +80,7 @@ def list_sam_model():
 
 
 def load_sam_model(model_name):
-    sam_checkpoint_path = get_local_filepath(
+    sam_checkpoint_path = get_local_filepath( context,
         sam_model_list[model_name]["model_url"], sam_model_dir_name)
     model_file_name = os.path.basename(sam_checkpoint_path)
     model_type = model_file_name.split('.')[0]
@@ -91,12 +94,12 @@ def load_sam_model(model_name):
     return sam
 
 
-def get_local_filepath(url, dirname, local_file_name=None):
+def get_local_filepath(context: execution_context.ExecutionContext, url, dirname, local_file_name=None):
     if not local_file_name:
         parsed_url = urlparse(url)
         local_file_name = os.path.basename(parsed_url.path)
 
-    destination = folder_paths.get_full_path(dirname, local_file_name)
+    destination = folder_paths.get_full_path(context, dirname, local_file_name)
     if destination:
         logger.warn(f'using extra model: {destination}')
         return destination
@@ -112,9 +115,9 @@ def get_local_filepath(url, dirname, local_file_name=None):
     return destination
 
 
-def load_groundingdino_model(model_name):
+def load_groundingdino_model(context: execution_context.ExecutionContext, model_name):
     dino_model_args = local_groundingdino_SLConfig.fromfile(
-        get_local_filepath(
+        get_local_filepath(context,
             groundingdino_model_list[model_name]["config_url"],
             groundingdino_model_dir_name
         ),
@@ -125,7 +128,7 @@ def load_groundingdino_model(model_name):
     
     dino = local_groundingdino_build_model(dino_model_args)
     checkpoint = torch.load(
-        get_local_filepath(
+        get_local_filepath(context,
             groundingdino_model_list[model_name]["model_url"],
             groundingdino_model_dir_name,
         ),
@@ -259,14 +262,17 @@ class SAMModelLoader:
         return {
             "required": {
                 "model_name": (list_sam_model(), ),
+            },
+            "hidden": {
+                "context": "EXECUTION_CONTEXT"
             }
         }
     CATEGORY = "segment_anything"
     FUNCTION = "main"
     RETURN_TYPES = ("SAM_MODEL", )
 
-    def main(self, model_name):
-        sam_model = load_sam_model(model_name)
+    def main(self, model_name, context: execution_context.ExecutionContext):
+        sam_model = load_sam_model(context, model_name)
         return (sam_model, )
 
 
@@ -276,14 +282,17 @@ class GroundingDinoModelLoader:
         return {
             "required": {
                 "model_name": (list_groundingdino_model(), ),
+            },
+            "hidden": {
+                "context": "EXECUTION_CONTEXT"
             }
         }
     CATEGORY = "segment_anything"
     FUNCTION = "main"
     RETURN_TYPES = ("GROUNDING_DINO_MODEL", )
 
-    def main(self, model_name):
-        dino_model = load_groundingdino_model(model_name)
+    def main(self, model_name, context: execution_context.ExecutionContext):
+        dino_model = load_groundingdino_model(context, model_name)
         return (dino_model, )
 
 
