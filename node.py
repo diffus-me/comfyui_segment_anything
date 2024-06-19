@@ -79,7 +79,7 @@ def list_sam_model():
     return list(sam_model_list.keys())
 
 
-def load_sam_model(model_name):
+def load_sam_model(context, model_name):
     sam_checkpoint_path = get_local_filepath( context,
         sam_model_list[model_name]["model_url"], sam_model_dir_name)
     model_file_name = os.path.basename(sam_checkpoint_path)
